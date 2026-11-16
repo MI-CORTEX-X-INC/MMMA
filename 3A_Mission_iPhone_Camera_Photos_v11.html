@@ -1245,7 +1245,7 @@ dailyThought();updateDailyCountdownMessage();renderTasks();renderTodoHistory();r
  let faceIdTimer=null;
  let faceTimers=[];
  function clearFaceTimers(){faceTimers.forEach(clearTimeout);faceTimers=[];if(faceIdTimer)clearTimeout(faceIdTimer);}
- function openKeypad(){if(panelOpen||unlocked)return;panelOpen=true;clearFaceTimers();screen.classList.remove('faceid-fail','faceid-done');screen.classList.add('keypad-open','faceid-active');panel.classList.add('show');
+ function openKeypad(){if(panelOpen||unlocked)return;panelOpen=true;clearFaceTimers();screen.classList.remove('faceid-fail','faceid-done');screen.classList.add('keypad-open','faceid-active');panel.classList.add('show');const status=screen.querySelector('.faceid-status');if(status)status.textContent='Look at iPhone';
   const __pad=(message)=>{if(message){const status=screen.querySelector('.faceid-status');if(status)status.textContent=message;}faceTimers.push(window.setTimeout(()=>{if(unlocked)return;screen.classList.add('faceid-fail');},1100));
   faceTimers.push(window.setTimeout(()=>{if(unlocked)return;screen.classList.remove('faceid-active','faceid-fail');screen.classList.add('faceid-done');keypadEl.classList.remove('ready');void keypadEl.offsetWidth;keypadEl.classList.add('ready');},1650));};window.__lockOk=()=>unlock();if(window.sxFace){window.sxFace.sync();if(window.sxFace.lockScan(()=>unlock(),__pad))return;}__pad();}
  function closeKeypad(){if(!panelOpen||unlocked)return;panelOpen=false;clearFaceTimers();screen.classList.remove('keypad-open','faceid-active','faceid-done','faceid-fail');panel.classList.remove('show');keypadEl.classList.remove('ready');clearCode();error.textContent='';}
