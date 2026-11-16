@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    {
+      "source": "/",
+      "destination": "/3A_Mission_iPhone_Camera_Photos_v11.html"
+    }
+  ]
+}
