@@ -2555,7 +2555,7 @@ const GL='<svg viewBox="0 0 64 64" fill="none" stroke="#fff" stroke-width="3" st
 let libP;const lib=()=>libP||(libP=new Promise((res,rej)=>{const s=document.createElement('script');s.src=BASE+'dist/face-api.js';s.onload=async()=>{try{const u=BASE+'model';await Promise.all([faceapi.nets.tinyFaceDetector.loadFromUri(u),faceapi.nets.faceLandmark68TinyNet.loadFromUri(u),faceapi.nets.faceRecognitionNet.loadFromUri(u)]);res()}catch(e){rej(e)}};s.onerror=rej;document.head.appendChild(s)}).catch(e=>{libP=null;throw e}));
 const stop=st=>st&&st.getTracks().forEach(t=>t.stop());
 const cam=async v=>{if(!window.isSecureContext||!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia)throw new Error('Secure camera access is unavailable');const st=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'user'},width:{ideal:480},height:{ideal:480}},audio:false});try{v.srcObject=st;v.muted=true;v.playsInline=true;v.setAttribute('playsinline','');await v.play();return st}catch(e){stop(st);v.srcObject=null;throw e}};
-const det=v=>faceapi.detectSingleFace(v,new faceapi.TinyFaceDetectorOptions({inputSize:224,scoreThreshold:.5})).withFaceLandmarks(true).withFaceDescriptor();
+const det=v=>faceapi.detectSingleFace(v,new faceapi.TinyFaceDetectorOptions({inputSize:320,scoreThreshold:.3})).withFaceLandmarks(true).withFaceDescriptor();
 const wait=ms=>new Promise(r=>setTimeout(r,ms));
 const scanErrorMessage=(e,stage)=>{if(!window.isSecureContext||!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia)return'Face ID needs camera access on a secure HTTPS page.';if(stage==='models')return'Face ID could not load. Check your internet connection and try again.';if(e&&['NotAllowedError','SecurityError'].includes(e.name))return'Allow camera access for this site, then retry Face ID.';if(e&&e.name==='NotFoundError')return'No camera was found. Enter your passcode instead.';if(e&&['NotReadableError','AbortError'].includes(e.name))return'The camera is busy. Close other apps using it and retry.';return'Camera could not start. Check camera permission and try again.'};
 async function scan(){const v=document.createElement('video');v.style.cssText='position:fixed;left:0;top:0;width:64px;height:64px;opacity:.01;pointer-events:none';document.body.appendChild(v);let st,bad=0,stage='camera';
@@ -2594,22 +2594,29 @@ const g0=window.go;window.go=function(id){const cur=(document.querySelector('.pa
  if(id==='settings')view('main');return r};
 if(typeof pageNames!=='undefined')pageNames.settings='Settings';
 const sh0=window.showIphoneHomeScreen;window.showIphoneHomeScreen=function(){OK.clear();return sh0.apply(this,arguments)};
-/* ---------- Face ID enrolment (capture and save face descriptors) ---------- */
+/* ---------- Face ID enrolment (guided pose capture and save) ---------- */
 function enroll(){
- const N=60,TARGET=10;let ln='';for(let i=0;i<N;i++){const a=i/N*2*Math.PI-Math.PI/2,c=Math.cos(a),s=Math.sin(a);ln+=`<line data-i="${i}" x1="${125+c*108}" y1="${125+s*108}" x2="${125+c*121}" y2="${125+s*121}"/>`}
+ const N=60,CIRCLE_STEPS=8,STEPS=['Look straight at the camera and hold still.','Now move your face upward slightly and hold still.','Move your face downward slightly and hold still.','Move your face to the left slightly and hold still.','Move your face to the right slightly and hold still.','Move your face in a small circle inside the ring.'];let ln='';for(let i=0;i<N;i++){const a=i/N*2*Math.PI-Math.PI/2,c=Math.cos(a),s=Math.sin(a);ln+=`<line data-i="${i}" x1="${125+c*108}" y1="${125+s*108}" x2="${125+c*121}" y2="${125+s*121}"/>`}
  const o=E(`<div class="sxE"><h2>Face ID</h2><div class="sxCam"><video></video><svg viewBox="0 0 250 250">${ln}</svg></div><div class="pc">0%</div><p class="hi">Allow camera access to continue.</p><button class="cn">Cancel</button></div>`);document.body.appendChild(o);
- const v=$('video',o),hi=$('.hi',o),pc=$('.pc',o);let st,dead=0,last=0;const S=[];
+ const v=$('video',o),hi=$('.hi',o),pc=$('.pc',o);let st,dead=0,step=0,stable=0,base=null;const S=[],circle=new Set();
  const close=()=>{dead=1;stop(st);o.remove();view(cur)};$('.cn',o).onclick=close;
  (async()=>{let stage='camera';try{st=await cam(v);if(dead){stop(st);return}stage='models';hi.textContent='Loading Face ID models…';await lib()}catch(e){console.error('Face ID setup failed',e);if(st)stop(st);hi.textContent=scanErrorMessage(e,stage);return}
-  hi.textContent='Position your face in the circle and look at the camera. Hold still while Face ID scans.';
+  hi.textContent=STEPS[0];
   while(!dead){const r=await det(v).catch(()=>null);
-   if(!r){hi.textContent='I can’t see your face. Look at the camera.';await wait(120);continue}
-   if(Date.now()-last>400&&S.length<TARGET){S.push(Array.from(r.descriptor).map(x=>+x.toFixed(4)));last=Date.now()}
-   const p100=Math.round(S.length/TARGET*100),filled=Math.floor(S.length*N/TARGET);pc.textContent=p100+'%';
-   $$('line',o).forEach(l=>l.classList.toggle('on',+l.dataset.i<filled));
-   if(p100<100)hi.textContent=S.length?'Face detected. Hold still while Face ID records your face.':'Position your face in the circle and look at the camera.';
-   if(S.length>=TARGET){const record={...F,d:S,use:F.use&&Object.keys(F.use).length?F.use:{unlock:1,notes:1,hidden:1,apps:1}};
-    try{localStorage.setItem('m3a_face',JSON.stringify(record));const saved=JSON.parse(localStorage.getItem('m3a_face')||'null');if(!saved||!Array.isArray(saved.d)||saved.d.length!==TARGET)throw new Error('Saved Face ID record could not be verified');F=saved}catch(e){console.error('Face ID record could not be saved',e);stop(st);st=null;hi.textContent='Face scan finished, but this browser could not save it. Enable site storage, then set up Face ID again.';return}
+   if(!r){stable=0;hi.textContent='I can’t see your face. Keep it inside the ring and look at the camera.';await wait(120);continue}
+   const box=r.detection&&r.detection.box;if(!box||!v.videoWidth||!v.videoHeight){hi.textContent='Hold your face inside the ring while the camera focuses.';await wait(120);continue}
+   const x=1-(box.x+box.width/2)/v.videoWidth,y=(box.y+box.height/2)/v.videoHeight,descriptor=Array.from(r.descriptor).map(n=>+n.toFixed(4));
+   const progress=p=>{const value=Math.min(100,Math.round(p));pc.textContent=value+'%';const filled=Math.floor(value*N/100);$$('line',o).forEach(l=>l.classList.toggle('on',+l.dataset.i<filled))};
+   if(step<STEPS.length-1){
+    const reached=step===0||(step===1&&y<base.y-.06)||(step===2&&y>base.y+.06)||(step===3&&x<base.x-.06)||(step===4&&x>base.x+.06);
+    if(reached){stable++;if(stable>=3){S.push(descriptor);if(step===0)base={x,y};step++;stable=0;progress(step/STEPS.length*100);hi.textContent=STEPS[step]}}
+    else stable=0;
+   }else{
+    const dx=x-base.x,dy=y-base.y;if(Math.hypot(dx,dy)>.06){const i=Math.round(((Math.atan2(dy,dx)+Math.PI)/(2*Math.PI))*CIRCLE_STEPS)%CIRCLE_STEPS;if(!circle.has(i)){circle.add(i);S.push(descriptor);progress((step+circle.size/CIRCLE_STEPS)/STEPS.length*100)}}
+    if(circle.size<CIRCLE_STEPS)hi.textContent=STEPS[step];
+   }
+   if(circle.size===CIRCLE_STEPS){const record={...F,d:S,use:F.use&&Object.keys(F.use).length?F.use:{unlock:1,notes:1,hidden:1,apps:1}};
+    try{localStorage.setItem('m3a_face',JSON.stringify(record));const saved=JSON.parse(localStorage.getItem('m3a_face')||'null');if(!saved||!Array.isArray(saved.d)||saved.d.length!==S.length)throw new Error('Saved Face ID record could not be verified');F=saved}catch(e){console.error('Face ID record could not be saved',e);stop(st);st=null;hi.textContent='Face scan finished, but this browser could not save it. Enable site storage, then set up Face ID again.';return}
     fails=0;stop(st);
     $$('line',o).forEach(l=>l.classList.add('on'));pc.textContent='100%';$('h2',o).textContent='Face ID is set up ✓';hi.textContent='You can now use Face ID to unlock iPhone, Notes, Hidden Apps and locked apps.';
     const bt=$('.cn',o);bt.className='big';bt.textContent='Done';bt.onclick=close;return}
