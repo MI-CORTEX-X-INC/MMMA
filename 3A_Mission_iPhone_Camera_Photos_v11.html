@@ -2,24 +2,6 @@
 
 <html lang="si">
 <head>
-<script id="m3a-sync-bootstrap">
-document.documentElement.classList.add('m3a-sync-loading');
-window.__m3aSyncReady=new Promise(resolve=>{window.__resolveM3ASyncReady=resolve});
-</script>
-<style id="m3a-sync-gate-css">
-html.m3a-sync-loading body>:not(#m3aSyncGate){visibility:hidden!important}
-#m3aSyncGate{position:fixed;inset:0;z-index:2147483647;display:grid;place-items:center;overflow:auto;padding:20px;box-sizing:border-box;background:#090a10;color:#fff;font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
-.m3a-sync-card{width:min(100%,420px);box-sizing:border-box;padding:28px;border:1px solid #ffffff20;border-radius:22px;background:#171922;box-shadow:0 24px 80px #0009}
-.m3a-sync-card h1{margin:0 0 10px;font-size:23px}.m3a-sync-description,.m3a-sync-privacy{color:#b9bdc9;line-height:1.5}
-.m3a-sync-card form{display:grid;gap:14px;margin-top:20px}.m3a-sync-card label{display:grid;gap:6px;font-size:14px}
-.m3a-sync-card input{box-sizing:border-box;width:100%;padding:12px;border:1px solid #565b69;border-radius:10px;background:#0e1017;color:#fff;font:inherit}
-.m3a-sync-card button{min-height:44px;padding:10px 14px;border:0;border-radius:10px;background:#0a84ff;color:white;font:600 15px system-ui;cursor:pointer}
-.m3a-sync-card button:disabled{opacity:.6;cursor:wait}.m3a-sync-card .m3a-sync-link{margin-top:10px;background:transparent;color:#79b8ff}
-.m3a-sync-message{min-height:22px;overflow-wrap:anywhere}.m3a-sync-message.error{color:#ff6961}.m3a-sync-privacy{font-size:12px}
-#m3aSyncBadge{position:fixed;right:12px;bottom:12px;z-index:2147483000;max-width:min(86vw,340px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:9px 13px;border:1px solid #ffffff2c;border-radius:999px;background:#171922;color:#fff;font:12px system-ui}
-#m3aSyncBadge.error{border-color:#ff6961;color:#ff9b94}
-@media(prefers-reduced-motion:reduce){#m3aSyncGate *{scroll-behavior:auto!important}}
-</style>
 <script id="no-popups">
 /* No browser dialogs anywhere in the app */
 (function(){
@@ -2288,7 +2270,7 @@ saveNotesStore();
 function renderPinDots(){$('pinDots').querySelectorAll('i').forEach((dot,i)=>dot.classList.toggle('filled',i<notesPin.length));}
 function pressPin(n){if(notesUnlocked||notesPin.length>=7)return;notesPin+=String(n);$('notesPassword').value=notesPin;$('notesError').textContent='';renderPinDots();if(notesPin.length===7)unlockNotes();}
 function deletePin(){if(notesUnlocked)return;notesPin=notesPin.slice(0,-1);$('notesPassword').value=notesPin;$('notesError').textContent='';renderPinDots();}
-async function unlockNotes(){const ok=!!window.__notesOK||await (window.__checkNotesAsync?window.__checkNotesAsync(notesPin||$('notesPassword').value):Promise.resolve(window.__checkNotes(notesPin||$('notesPassword').value)));if(ok){window.__notesOK=0;notesUnlocked=true;notesPin='';$('notesLocked').style.display='none';$('notesWorkspace').style.display='block';$('notesPassword').value='';$('notesError').textContent='';renderPinDots();activeNoteId=null;renderNoteList();showNoteEmpty();const workspace=$('notesWorkspace');workspace.classList.remove('unlock-animate');void workspace.offsetWidth;workspace.classList.add('unlock-animate');setTimeout(()=>workspace.classList.remove('unlock-animate'),1100)}else{$('notesError').textContent='Wrong Passcode';notesPin='';$('notesPassword').value='';renderPinDots();}}
+function unlockNotes(){if(window.__notesOK||window.__checkNotes(notesPin)||window.__checkNotes($('notesPassword').value)){window.__notesOK=0;notesUnlocked=true;notesPin='';$('notesLocked').style.display='none';$('notesWorkspace').style.display='block';$('notesPassword').value='';$('notesError').textContent='';renderPinDots();activeNoteId=null;renderNoteList();showNoteEmpty();const workspace=$('notesWorkspace');workspace.classList.remove('unlock-animate');void workspace.offsetWidth;workspace.classList.add('unlock-animate');setTimeout(()=>workspace.classList.remove('unlock-animate'),1100)}else{$('notesError').textContent='Wrong Passcode';notesPin='';$('notesPassword').value='';renderPinDots();}}
 document.addEventListener('keydown',e=>{if(document.querySelector('#notes.active')&&!notesUnlocked){if(/^[0-9]$/.test(e.key)){e.preventDefault();pressPin(e.key)}else if(e.key==='Backspace'){e.preventDefault();deletePin()}}});
 function lockNotes(){if(notesUnlocked&&activeNoteId&&$('noteEditMode').style.display!=='none')saveNote(false);notesUnlocked=false;notesPin='';$('notesPassword').value='';renderPinDots();$('notesWorkspace').style.display='none';$('notesLocked').style.display='block';$('noteEditor').innerHTML='';$('noteTitle').value='';hideSiSuggestions();activeNoteId=null}
 function showNoteEmpty(){$('notesWorkspace').classList.remove('mobile-detail');$('noteEmptyState').style.display='flex';$('noteViewMode').style.display='none';$('noteEditMode').style.display='none';$('noteStatus').textContent='සටහනක් තෝරන්න.'}
@@ -2498,10 +2480,8 @@ dailyThought();updateDailyCountdownMessage();renderTasks();renderTodoHistory();r
   if(!panelOpen||unlocked||code.length>=6)return;
   code+=String(d);renderDots();
   if(code.length===6){
-    Promise.resolve(window.__checkPassAsync?window.__checkPassAsync(code):window.__checkPass(code)).then(ok=>{
-     if(ok){error.textContent='';window.sxFace&&window.sxFace.reset();unlock();}
-     else{error.textContent='Incorrect Passcode';panel.classList.remove('shake');void panel.offsetWidth;panel.classList.add('shake');window.setTimeout(()=>{clearCode();panel.classList.remove('shake');},550);}
-    }).catch(()=>{error.textContent='Passcode verification unavailable';});
+   if(window.__checkPass(code)){error.textContent='';window.sxFace&&window.sxFace.reset();unlock();}
+   else{error.textContent='Incorrect Passcode';panel.classList.remove('shake');void panel.offsetWidth;panel.classList.add('shake');window.setTimeout(()=>{clearCode();panel.classList.remove('shake');},550);}
   }
  }
  function backspace(){if(!panelOpen||unlocked)return;code=code.slice(0,-1);error.textContent='';renderDots();}
@@ -3754,7 +3734,7 @@ function search(){const v=q.value.trim().toLowerCase();if(!v){res.classList.remo
 q.addEventListener('input',search);
 /* Face ID + passcode: the shared Lock Screen keypad */
 function endPass(){if(window.__pc)window.__pc.closeAll();}
-function askFace(fn){window.__pc.open({len:6,title:'Enter Passcode',subtitle:'Enter your passcode to continue',check:c=>window.__checkPassAsync?window.__checkPassAsync(c):window.__checkPass(c),onOk:fn,faceFake:1500});}
+function askFace(fn){window.__pc.open({len:6,title:'Enter Passcode',subtitle:'Enter your passcode to continue',check:c=>window.__checkPass(c),onOk:fn,faceFake:1500});}
 /* swipe between Home Screen and App Library */
 let open=false,W=1,swiped=false,sw=null;
 function setP(p,anim){W=stage.getBoundingClientRect().width||1;stage.classList.toggle('al-anim',!!anim);stage.classList.add('al-moving');
@@ -3845,7 +3825,7 @@ const dbPut=o=>tx('readwrite',s=>s.put(o)).catch(()=>{mem=mem.filter(x=>x.id!==o
 const dbDel=id=>tx('readwrite',s=>s.delete(id)).catch(()=>{mem=mem.filter(x=>x.id!==id)});
 const thumbOf=async b=>{try{const im=await createImageBitmap(b),s=Math.min(1,420/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=Math.round(im.width*s);c.height=Math.round(im.height*s);c.getContext('2d').drawImage(im,0,0,c.width,c.height);return await new Promise(r=>c.toBlob(r,'image/jpeg',.8))}catch(e){return b}};
 const url=(o,full)=>{const k=o.id+(full?'f':'t');if(!urls.has(k))urls.set(k,URL.createObjectURL(full?o.blob:(o.thumb||o.blob)));return urls.get(k)};
-const load=async()=>{await(window.__m3aSyncReady||Promise.resolve());const now=Date.now();items=(await dbAll()).filter(o=>{if(o.del&&now-o.del>2592e6){dbDel(o.id);return false}return true}).sort((a,b)=>b.date-a.date);setThumb()};
+const load=async()=>{const now=Date.now();items=(await dbAll()).filter(o=>{if(o.del&&now-o.del>2592e6){dbDel(o.id);return false}return true}).sort((a,b)=>b.date-a.date);setThumb()};
 const vthumb=b=>new Promise(res=>{const v=document.createElement('video'),u=URL.createObjectURL(b);v.muted=true;v.playsInline=true;v.preload='metadata';v.src=u;const done=(t,d)=>{URL.revokeObjectURL(u);res({thumb:t,dur:d||0})};v.onloadedmetadata=()=>{v.currentTime=Math.min(.1,(v.duration||1)/2)};v.onseeked=()=>{const s=Math.min(1,420/Math.max(v.videoWidth,v.videoHeight)),c=document.createElement('canvas');c.width=Math.round(v.videoWidth*s)||1;c.height=Math.round(v.videoHeight*s)||1;c.getContext('2d').drawImage(v,0,0,c.width,c.height);c.toBlob(t=>done(t,v.duration),'image/jpeg',.8)};v.onerror=()=>done(null,0);setTimeout(()=>done(null,0),6000)});
 const addBlob=async b=>{const vv=(b.type||'').startsWith('video');let th=null,dur=0;if(vv){const r=await vthumb(b);th=r.thumb;dur=r.dur}else th=await thumbOf(b);
  if(!th)th=await new Promise(r=>{const c=document.createElement('canvas');c.width=c.height=8;const x=c.getContext('2d');x.fillStyle='#2c2c2e';x.fillRect(0,0,8,8);c.toBlob(r)});
@@ -4132,7 +4112,7 @@ if(ok){fails=0;return 1}if(mismatch)fails++;return 0}
 /* ---------- Face ID / passcode prompt for apps, notes, hidden apps ---------- */
 function ask(name,use,done,no){
  const nt=use==='notes',len=nt?7:6;let dead=0;if(window.__passOff()){done&&done();return}
- const api=window.__pc.open({len,title:'Enter Passcode',subtitle:nt?'Unlock your private notebook':'Enter your passcode to unlock '+name,faceName:usable(use)?name:null,check:c=>nt?(window.__checkNotesAsync?window.__checkNotesAsync(c):window.__checkNotes(c)):(window.__checkPassAsync?window.__checkPassAsync(c):window.__checkPass(c)),
+ const api=window.__pc.open({len,title:'Enter Passcode',subtitle:nt?'Unlock your private notebook':'Enter your passcode to unlock '+name,faceName:usable(use)?name:null,check:c=>nt?window.__checkNotes(c):window.__checkPass(c),
   onOk:()=>{dead=1;if(!nt)fails=0;done&&done()},onCancel:()=>{dead=1;no&&no()}});
  const pad=()=>{api.showPad();api.retry(usable(use)?face:null)};
  const face=async()=>{
@@ -4325,15 +4305,8 @@ view('main');
   const close=()=>{if(dead)return;dead=true;clearTimeout(ft);document.removeEventListener('keydown',kd,true);el.classList.remove('show');setTimeout(()=>el.remove(),260);};
   function digit(d){if(mode!=='pad'||dead||code.length>=len)return;code+=String(d);render();
    if(code.length===len){
-    Promise.resolve(o.check(code)).then(ok=>{
-     if(dead)return;
-     if(ok){err.textContent='';close();o.onOk&&o.onOk();}
-     else{err.textContent='Incorrect Passcode';pad.classList.remove('shake');void pad.offsetWidth;pad.classList.add('shake');setTimeout(()=>{code='';render();pad.classList.remove('shake');},550);}
-    }).catch(()=>{
-     if(dead)return;
-     err.textContent='Passcode verification unavailable';
-     setTimeout(()=>{code='';render();},550);
-    });
+    if(o.check(code)){err.textContent='';close();o.onOk&&o.onOk();}
+    else{err.textContent='Incorrect Passcode';pad.classList.remove('shake');void pad.offsetWidth;pad.classList.add('shake');setTimeout(()=>{code='';render();pad.classList.remove('shake');},550);}
    }}
   function back(){if(mode!=='pad'||dead)return;code=code.slice(0,-1);err.textContent='';render();}
   rubber(kp,digit,back);
@@ -5175,7 +5148,7 @@ function lib(){return libP||(libP=(async()=>{
  return m})().catch(e=>{libP=null;throw e}))}
 const getDoc=(L,data)=>L.getDocument(Object.assign({data},SW?{worker:SW}:{}));
 /* ---------- list ---------- */
-async function load(){await(window.__m3aSyncReady||Promise.resolve());try{list=(await dbAll())||[]}catch(e){list=[]}draw();genThumbs()}
+async function load(){try{list=(await dbAll())||[]}catch(e){list=[]}draw();genThumbs()}
 function draw(){
  const body=$('pfBody'),f=list.slice().sort((a,b)=>b.date-a.date).filter(x=>!q||x.name.toLowerCase().includes(q.toLowerCase()));
  if(!list.length){body.innerHTML='<div class="pf-empty">'+IC.doc+'<h3>No PDFs Yet</h3><p>Upload a PDF and it stays saved on this device.</p><button class="pf-btn" data-a="add">Upload PDF</button></div>';return}
@@ -9325,31 +9298,14 @@ body.shop-frame-blue #challenge .cs-stat{border-color:rgba(10,132,255,.45)!impor
  function slow(code,salt){var h=sha256(salt+':'+code);for(var i=0;i<ROUNDS;i++)h=sha256(h+salt+code);return h}
  function newSalt(){var a=new Uint8Array(16),s='';try{crypto.getRandomValues(a)}catch(e){for(var i=0;i<16;i++)a[i]=Math.random()*256}for(var j=0;j<16;j++)s+=('0'+a[j].toString(16)).slice(-2);return s}
  function same(a,b){if(!a||!b||a.length!==b.length)return false;var d=0;for(var i=0;i<a.length;i++)d|=a.charCodeAt(i)^b.charCodeAt(i);return d===0}
- async function derive(p,salt){
-  if(!crypto.subtle)return null;
-  var bytes=new TextEncoder().encode(p+':'+salt),base=await crypto.subtle.importKey('raw',bytes,{name:'PBKDF2'},false,['deriveBits']);
-  var saltBytes=new TextEncoder().encode(salt),bits=await crypto.subtle.deriveBits({name:'PBKDF2',salt:saltBytes,iterations:310000,hash:'SHA-256'},base,256);
-  return Array.from(new Uint8Array(bits)).map(function(v){return ('0'+v.toString(16)).slice(-2)}).join('');
- }
- async function store(p){
-  var s=newSalt();
-  set('m3a_pc_s',s);
-  del('m3a_pc_h');del('m3a_pc_n');
-  var app=await derive(String(p),s),notes=await derive(String(p)+'8',s);
-  if(!app||!notes)return false;
-  set('m3a_pc_h',app);set('m3a_pc_n',notes);set('m3a_pc_v','2');
-  del('m3a_passcode');
-  return true;
- }
+ function store(p){var s=newSalt();set('m3a_pc_s',s);set('m3a_pc_h',slow(p,s));set('m3a_pc_n',slow(p+'8',s))}
  /* one-time migration: older versions kept the passcode itself in localStorage */
- (function(){var old=get('m3a_passcode');if(old&&/^\d{6}$/.test(old))store(old)})();
+ (function(){var old=get('m3a_passcode');if(old&&/^\d{6}$/.test(old)){store(old);del('m3a_passcode')}})();
  window.__passOff=function(){return get('m3a_passcode')==='off'};
  window.__needSetup=function(){return !window.__passOff()&&!get('m3a_pc_h')};
- window.__setPass=async function(v){if(v==='off'){set('m3a_passcode','off');del('m3a_pc_h');del('m3a_pc_n');del('m3a_pc_s');del('m3a_pc_v');return true}del('m3a_passcode');return store(String(v))};
- window.__checkPass=function(c){if(window.__passOff())return true;if(get('m3a_pc_v')==='2')return false;var s=get('m3a_pc_s'),h=get('m3a_pc_h');return !!(s&&h)&&same(slow(String(c),s),h)};
- window.__checkNotes=function(c){c=String(c);if(window.__passOff())return c==='0000008';if(get('m3a_pc_v')==='2')return false;var s=get('m3a_pc_s'),h=get('m3a_pc_n');return !!(s&&h)&&same(slow(c,s),h)};
- window.__checkPassAsync=async function(c){if(window.__passOff())return true;if(get('m3a_pc_v')==='2'){var s=get('m3a_pc_s'),h=get('m3a_pc_h');if(!s||!h)return false;return same(await derive(String(c),s),h)}return window.__checkPass(c)};
- window.__checkNotesAsync=async function(c){c=String(c);if(window.__passOff())return c==='0000008';if(get('m3a_pc_v')==='2'){var s=get('m3a_pc_s'),h=get('m3a_pc_n');if(!s||!h)return false;return same(await derive(c+'8',s),h)}return window.__checkNotes(c)};
+ window.__setPass=function(v){if(v==='off'){set('m3a_passcode','off');del('m3a_pc_h');del('m3a_pc_n');del('m3a_pc_s');return}del('m3a_passcode');store(String(v))};
+ window.__checkPass=function(c){if(window.__passOff())return true;var s=get('m3a_pc_s'),h=get('m3a_pc_h');return !!(s&&h)&&same(slow(String(c),s),h)};
+ window.__checkNotes=function(c){c=String(c);if(window.__passOff())return c==='0000008';var s=get('m3a_pc_s'),h=get('m3a_pc_n');return !!(s&&h)&&same(slow(c,s),h)};
  /* first run (no passcode chosen yet): make the owner create one. Nothing is built into the file. */
  function setup(){
   if(!window.__needSetup())return;
@@ -11675,6 +11631,5 @@ document.addEventListener('click', function(ev){
 }, true);
 })();
 </script>
-<script type="module" src="account-sync.js"></script>
 </body>
 </html>
